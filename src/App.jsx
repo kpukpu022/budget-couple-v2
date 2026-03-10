@@ -292,26 +292,38 @@ export default function App(){
   // ── Load from Supabase ──
   useEffect(()=>{
     async function load(){
-      async function safeGet(key){
-        try{ const r=await window.storage.get(key,true); return r?.value?JSON.parse(r.value):null; }
-        catch{ return null; }
+      // Lecture directe Supabase — bypass le localStorage fallback du polyfill
+      // pour éviter de charger des vieilles données après un DELETE dans Supabase
+      const URL="https://tfrezncozblmfctwgayo.supabase.co";
+      const KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRmcmV6bmNvemJsbWZjdHdnYXlvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMwMDUxNzcsImV4cCI6MjA4ODU4MTE3N30.VOCinZ5T4sR1eCdWpwa3S5AzZ-SfQY-l_TgegmyYxLY";
+      const H={"Content-Type":"application/json","apikey":KEY,"Authorization":"Bearer "+KEY};
+      async function sGet(key){
+        try{
+          const res=await fetch(URL+"/rest/v1/kv_store?id=eq."+encodeURIComponent(key)+"&select=id,value",{headers:H});
+          const d=await res.json();
+          return(d&&d.length)?JSON.parse(d[0].value):null;
+        }catch{return null;}
       }
-      const [e,v,s,r,i,p]=await Promise.all(Object.values(SK).map(safeGet));
-      if(e)setExpenses(e);
-      if(v)setEnvelopes(v);
-      else{ setEnvelopes(DEFAULT_ENVELOPES); try{await window.storage.set(SK.env,JSON.stringify(DEFAULT_ENVELOPES),true);}catch{} }
-      if(s){ setSettings(s); setSetForm2({ratioCap:s.ratioCap,nameCap:s.names[0],nameGui:s.names[1],salCap:s.salCap||2100,salGui:s.salGui||2900}); }
-      else{ setSettings(DEFAULT_SETTINGS); try{await window.storage.set(SK.set,JSON.stringify(DEFAULT_SETTINGS),true);}catch{} }
-      if(r)setRecurring(r);
-      else{ setRecurring(DEFAULT_RECURRING); try{await window.storage.set(SK.rec,JSON.stringify(DEFAULT_RECURRING),true);}catch{} }
-      if(i)setIncomes(i);
-      if(p)setRepayments(p);
+      async function sSet(key,data){
+        try{await fetch(URL+"/rest/v1/kv_store",{method:"POST",headers:{...H,"Prefer":"resolution=merge-duplicates"},body:JSON.stringify({id:key,value:JSON.stringify(data)})})}catch{}
+        try{localStorage.setItem("b_"+key,JSON.stringify(data));}catch{}
+      }
+      const [e,v,s,r,i,p]=await Promise.all(Object.values(SK).map(sGet));
+      if(e) setExpenses(e);
+      if(v) setEnvelopes(v);
+      else  { setEnvelopes(DEFAULT_ENVELOPES); await sSet(SK.env,DEFAULT_ENVELOPES); }
+      if(s) { setSettings(s); setSetForm2({ratioCap:s.ratioCap,nameCap:s.names[0],nameGui:s.names[1],salCap:s.salCap||2100,salGui:s.salGui||2900}); }
+      else  { setSettings(DEFAULT_SETTINGS); await sSet(SK.set,DEFAULT_SETTINGS); }
+      if(r) setRecurring(r);
+      else  { setRecurring(DEFAULT_RECURRING); await sSet(SK.rec,DEFAULT_RECURRING); }
+      if(i) setIncomes(i);
+      if(p) setRepayments(p);
       setLoaded(true);
     }
     load();
   },[]);
 
-  const persist=useCallback(async(key,data)=>{try{await window.storage.set(key,JSON.stringify(data),true);}catch{}},[]);
+  const persist=useCallback(async(key,data)=>{try{await window.storage.set(key,JSON.stringify(data));}catch{}},[]);
 
   // Quick add parse
   useEffect(()=>{
@@ -1254,6 +1266,10 @@ export default function App(){
                 <button className="btn bp" style={{flex:1}} onClick={saveSettings}>Sauvegarder</button>
                 <button className="btn bg2" onClick={()=>setShowSettings(false)}>Annuler</button>
               </div>
+              <button className="btn bg2" style={{width:"100%",marginTop:8,color:"#ef4444",fontSize:12}} onClick={()=>{
+                Object.values(SK).forEach(k=>localStorage.removeItem("b_"+k));
+                showToast("🗑️ Cache vidé — recharge la page !");
+              }}>🗑️ Vider le cache local (debug)</button>
             </div>
           </div>
         </div>
