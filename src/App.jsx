@@ -292,16 +292,20 @@ export default function App(){
   // ── Load from Supabase ──
   useEffect(()=>{
     async function load(){
-      try{
-        const res=await Promise.allSettled(Object.values(SK).map(k=>window.storage.get(k,true)));
-        const parse=r=>r.status==="fulfilled"&&r.value?.value?JSON.parse(r.value.value):null;
-        const [e,v,s,r,i,p]=res.map(parse);
-        if(e)setExpenses(e);
-        if(v)setEnvelopes(v); else await window.storage.set(SK.env,JSON.stringify(DEFAULT_ENVELOPES),true);
-        if(s){setSettings(s);setSetForm2({ratioCap:s.ratioCap,nameCap:s.names[0],nameGui:s.names[1],salCap:s.salCap||2100,salGui:s.salGui||2900});} else await window.storage.set(SK.set,JSON.stringify(DEFAULT_SETTINGS),true);
-        if(r)setRecurring(r); else await window.storage.set(SK.rec,JSON.stringify(DEFAULT_RECURRING),true);
-        if(i)setIncomes(i); if(p)setRepayments(p);
-      }catch{}
+      async function safeGet(key){
+        try{ const r=await window.storage.get(key,true); return r?.value?JSON.parse(r.value):null; }
+        catch{ return null; }
+      }
+      const [e,v,s,r,i,p]=await Promise.all(Object.values(SK).map(safeGet));
+      if(e)setExpenses(e);
+      if(v)setEnvelopes(v);
+      else{ setEnvelopes(DEFAULT_ENVELOPES); try{await window.storage.set(SK.env,JSON.stringify(DEFAULT_ENVELOPES),true);}catch{} }
+      if(s){ setSettings(s); setSetForm2({ratioCap:s.ratioCap,nameCap:s.names[0],nameGui:s.names[1],salCap:s.salCap||2100,salGui:s.salGui||2900}); }
+      else{ setSettings(DEFAULT_SETTINGS); try{await window.storage.set(SK.set,JSON.stringify(DEFAULT_SETTINGS),true);}catch{} }
+      if(r)setRecurring(r);
+      else{ setRecurring(DEFAULT_RECURRING); try{await window.storage.set(SK.rec,JSON.stringify(DEFAULT_RECURRING),true);}catch{} }
+      if(i)setIncomes(i);
+      if(p)setRepayments(p);
       setLoaded(true);
     }
     load();
