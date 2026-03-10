@@ -11,43 +11,56 @@ const MONTHS  = ["Janvier","Février","Mars","Avril","Mai","Juin","Juillet","Ao�
 const MSHT    = ["Jan","Fév","Mar","Avr","Mai","Jun","Jul","Aoû","Sep","Oct","Nov","Déc"];
 const DAYS_S  = ["L","M","M","J","V","S","D"];
 
-const DEFAULT_SETTINGS = { ratioCap:43, names:["Capucine","Guillaume"] };
+const DEFAULT_SETTINGS = { ratioCap:42, names:["Capucine","Guillaume"], salCap:2100, salGui:2900 };
 const DEFAULT_ENVELOPES = [
-  // 🤝 COMMUN (pro rata 43/57)
-  { id:"ec_loy", name:"Loyer",            emoji:"🏠", color:"#8b5cf6", budget:1280, owner:"shared" },
-  { id:"ec_box", name:"Box & assur. hab", emoji:"📡", color:"#3b82f6", budget:49,   owner:"shared" },
+  // 🤝 POT COMMUN — pro rata 42/58
+  { id:"ec_loy", name:"Loyer + charges",  emoji:"🏠", color:"#8b5cf6", budget:1412, owner:"shared" },
   { id:"ec_voi", name:"Assurance voiture",emoji:"🚗", color:"#6366f1", budget:62,   owner:"shared" },
-  { id:"ec_cou", name:"Courses",          emoji:"🛒", color:"#f43f8a", budget:500,  owner:"shared" },
-  { id:"ec_ext", name:"Extras & snacks",  emoji:"🧃", color:"#10b981", budget:64,   owner:"shared" },
-  { id:"ec_res", name:"Restos",           emoji:"🍽️", color:"#f97316", budget:100,  owner:"shared" },
-  { id:"ec_caf", name:"Cafés",            emoji:"☕", color:"#f59e0b", budget:64,   owner:"shared" },
-  { id:"ec_bar", name:"Bars & sorties",   emoji:"🍷", color:"#ec4899", budget:40,   owner:"shared" },
-  { id:"ec_mai", name:"Maison & déco",    emoji:"🛋️", color:"#14b8a6", budget:70,   owner:"shared" },
-  // 👩 CAPUCINE perso
-  { id:"ep_abo", name:"Abonnements Cap",  emoji:"📱", color:"#f43f8a", budget:80,   owner:"cap"    },
-  { id:"ep_spo", name:"Sport Cap",        emoji:"🏋️", color:"#ec4899", budget:49,   owner:"cap"    },
-  { id:"ep_sho", name:"Shopping Cap",     emoji:"👗", color:"#f97316", budget:140,  owner:"cap"    },
-  { id:"ep_lib", name:"Liberté Cap",      emoji:"🎯", color:"#c026d3", budget:449,  owner:"cap"    },
-  { id:"ep_etf", name:"Épargne Cap (ETF)",emoji:"📈", color:"#10b981", budget:260,  owner:"cap"    },
-  { id:"ep_epa", name:"Épargne Cap",       emoji:"🏦", color:"#06b6d4", budget:0,    owner:"cap"    },
-  // 👨 GUILLAUME perso
-  { id:"eg_abo", name:"Abonnements Gui",  emoji:"📱", color:"#3b82f6", budget:75,   owner:"gui"    },
-  { id:"eg_sho", name:"Shopping Gui",     emoji:"🎮", color:"#8b5cf6", budget:180,  owner:"gui"    },
-  { id:"eg_lib", name:"Liberté Gui",      emoji:"🎯", color:"#14b8a6", budget:778,  owner:"gui"    },
-  { id:"eg_epa", name:"Épargne Gui",      emoji:"💰", color:"#06b6d4", budget:0,    owner:"gui"    },
+  { id:"ec_ess", name:"Essence",          emoji:"⛽", color:"#f59e0b", budget:120,  owner:"shared" },
+  { id:"ec_cou", name:"Courses frigo",    emoji:"🛒", color:"#f43f8a", budget:400,  owner:"shared" },
+  // 👩 CAPUCINE — fixes
+  { id:"ep_spo", name:"Sport",            emoji:"🏋️", color:"#ec4899", budget:49,   owner:"cap"    },
+  { id:"ep_abo", name:"Abonnements Cap",  emoji:"📱", color:"#f43f8a", budget:31,   owner:"cap"    },
+  // 👩 CAPUCINE — épargne
+  { id:"ep_liv", name:"Livret Cap",       emoji:"🏦", color:"#10b981", budget:400,  owner:"cap"    },
+  { id:"ep_etf", name:"ETF Cap",          emoji:"📈", color:"#059669", budget:260,  owner:"cap"    },
+  // 👩 CAPUCINE — plaisir
+  { id:"ep_sna", name:"Snacks Cap",       emoji:"🍫", color:"#f97316", budget:20,   owner:"cap"    },
+  { id:"ep_lib", name:"Liberté Cap",      emoji:"🎯", color:"#c026d3", budget:400,  owner:"cap"    },
+  // 👨 GUILLAUME — fixes
+  { id:"eg_tra", name:"Train",            emoji:"🚆", color:"#3b82f6", budget:44.5, owner:"gui"    },
+  { id:"eg_abo", name:"Abonnements Gui",  emoji:"📱", color:"#6366f1", budget:31,   owner:"gui"    },
+  // 👨 GUILLAUME — épargne
+  { id:"eg_liv", name:"Livret Gui",       emoji:"🏦", color:"#10b981", budget:400,  owner:"gui"    },
+  { id:"eg_etf", name:"ETF Gui",          emoji:"📈", color:"#059669", budget:300,  owner:"gui"    },
+  // 👨 GUILLAUME — plaisir
+  { id:"eg_sna", name:"Snacks Gui",       emoji:"🍔", color:"#f97316", budget:40,   owner:"gui"    },
+  { id:"eg_lib", name:"Liberté Gui",      emoji:"🎯", color:"#14b8a6", budget:750,  owner:"gui"    },
 ];
 const DEFAULT_RECURRING = [
-  { id:"r1",  label:"Loyer",             emoji:"🏠", dayOfMonth:1,  amount:1280, splitType:"prorata",  paidBy:"cap", envelopeId:"ec_loy", color:"#8b5cf6", note:"Charges comprises" },
-  { id:"r2",  label:"Electricite EDF",   emoji:"⚡", dayOfMonth:5,  amount:83,   splitType:"prorata",  paidBy:"cap", envelopeId:"ec_box", color:"#f59e0b", note:"Variable" },
-  { id:"r3",  label:"Box internet",      emoji:"📡", dayOfMonth:10, amount:25,   splitType:"prorata",  paidBy:"gui", envelopeId:"ec_box", color:"#3b82f6", note:"" },
-  { id:"r4",  label:"Assurance hab.",    emoji:"🔒", dayOfMonth:10, amount:24,   splitType:"prorata",  paidBy:"cap", envelopeId:"ec_box", color:"#6366f1", note:"" },
-  { id:"r5",  label:"Assurance voiture", emoji:"🚗", dayOfMonth:5,  amount:62,   splitType:"prorata",  paidBy:"cap", envelopeId:"ec_voi", color:"#6366f1", note:"" },
-  { id:"r6",  label:"Forfait Gui",       emoji:"📱", dayOfMonth:5,  amount:16,   splitType:"gui_only", paidBy:"gui", envelopeId:"eg_abo", color:"#3b82f6", note:"" },
-  { id:"r7",  label:"Apple Cloud Gui",   emoji:"📱", dayOfMonth:15, amount:10,   splitType:"gui_only", paidBy:"gui", envelopeId:"eg_abo", color:"#3b82f6", note:"" },
-  { id:"r8",  label:"Train Gui",         emoji:"🚆", dayOfMonth:1,  amount:45,   splitType:"gui_only", paidBy:"gui", envelopeId:"eg_abo", color:"#10b981", note:"Domicile-travail" },
-  { id:"r9",  label:"Abonnements Cap",   emoji:"📱", dayOfMonth:5,  amount:80,   splitType:"cap_only", paidBy:"cap", envelopeId:"ep_abo", color:"#f43f8a", note:"Apple, Claude, Google" },
-  { id:"r10", label:"Sport Cap",         emoji:"🏋️", dayOfMonth:1,  amount:49,   splitType:"cap_only", paidBy:"cap", envelopeId:"ep_spo", color:"#ec4899", note:"" },
-  { id:"r12", label:"ETF Cap",            emoji:"📈", dayOfMonth:2,  amount:260,  splitType:"cap_only", paidBy:"cap", envelopeId:"ep_etf", color:"#10b981", note:"Epargne perso Cap" },
+  // 🤝 POT COMMUN (virements auto j.1)
+  { id:"r1",  label:"Loyer cc",          emoji:"🏠", dayOfMonth:1,  amount:1280, splitType:"prorata", paidBy:"cap", envelopeId:"ec_loy", color:"#8b5cf6", note:"Charges comprises" },
+  { id:"r2",  label:"EDF",               emoji:"⚡", dayOfMonth:5,  amount:83,   splitType:"prorata", paidBy:"cap", envelopeId:"ec_loy", color:"#f59e0b", note:"Variable" },
+  { id:"r3",  label:"Box internet",      emoji:"📡", dayOfMonth:10, amount:25,   splitType:"prorata", paidBy:"gui", envelopeId:"ec_loy", color:"#3b82f6", note:"" },
+  { id:"r4",  label:"Assurance hab.",    emoji:"🔒", dayOfMonth:10, amount:24,   splitType:"prorata", paidBy:"cap", envelopeId:"ec_loy", color:"#6366f1", note:"" },
+  { id:"r5",  label:"Assurance voiture", emoji:"🚗", dayOfMonth:5,  amount:62,   splitType:"prorata", paidBy:"cap", envelopeId:"ec_voi", color:"#6366f1", note:"" },
+  // 👩 CAP fixes
+  { id:"r6",  label:"Sport Cap",         emoji:"🏋️", dayOfMonth:1,  amount:49,   splitType:"cap_only", paidBy:"cap", envelopeId:"ep_spo", color:"#ec4899", note:"" },
+  { id:"r7",  label:"Claude AI",         emoji:"🤖", dayOfMonth:5,  amount:20,   splitType:"cap_only", paidBy:"cap", envelopeId:"ep_abo", color:"#f43f8a", note:"" },
+  { id:"r8",  label:"Apple Music Cap",   emoji:"🎵", dayOfMonth:5,  amount:4.99, splitType:"cap_only", paidBy:"cap", envelopeId:"ep_abo", color:"#f43f8a", note:"" },
+  { id:"r9",  label:"Apple Cloud Cap",   emoji:"☁️", dayOfMonth:5,  amount:2.99, splitType:"cap_only", paidBy:"cap", envelopeId:"ep_abo", color:"#f43f8a", note:"" },
+  { id:"r10", label:"Google Cloud Cap",  emoji:"☁️", dayOfMonth:5,  amount:2.99, splitType:"cap_only", paidBy:"cap", envelopeId:"ep_abo", color:"#f43f8a", note:"" },
+  // 👩 CAP épargne
+  { id:"r11", label:"Livret Cap",        emoji:"🏦", dayOfMonth:2,  amount:400,  splitType:"cap_only", paidBy:"cap", envelopeId:"ep_liv", color:"#10b981", note:"Virement auto" },
+  { id:"r12", label:"ETF Cap",           emoji:"📈", dayOfMonth:2,  amount:260,  splitType:"cap_only", paidBy:"cap", envelopeId:"ep_etf", color:"#059669", note:"Virement auto" },
+  // 👨 GUI fixes
+  { id:"r13", label:"Train Gui",         emoji:"🚆", dayOfMonth:1,  amount:44.5, splitType:"gui_only", paidBy:"gui", envelopeId:"eg_tra", color:"#3b82f6", note:"Domicile-travail" },
+  { id:"r14", label:"Forfait téléphone", emoji:"📱", dayOfMonth:5,  amount:15.99,splitType:"gui_only", paidBy:"gui", envelopeId:"eg_abo", color:"#6366f1", note:"" },
+  { id:"r15", label:"Apple Cloud Gui",   emoji:"☁️", dayOfMonth:5,  amount:9.99, splitType:"gui_only", paidBy:"gui", envelopeId:"eg_abo", color:"#6366f1", note:"" },
+  { id:"r16", label:"Apple Music Gui",   emoji:"🎵", dayOfMonth:5,  amount:4.99, splitType:"gui_only", paidBy:"gui", envelopeId:"eg_abo", color:"#6366f1", note:"" },
+  // 👨 GUI épargne
+  { id:"r17", label:"Livret Gui",        emoji:"🏦", dayOfMonth:2,  amount:400,  splitType:"gui_only", paidBy:"gui", envelopeId:"eg_liv", color:"#10b981", note:"Virement auto" },
+  { id:"r18", label:"ETF Gui",           emoji:"📈", dayOfMonth:2,  amount:300,  splitType:"gui_only", paidBy:"gui", envelopeId:"eg_etf", color:"#059669", note:"Virement auto" },
 ];
 const SPLIT_OPTS = [
   { key:"prorata", icon:"⚖️", label:"Pro rata" },
@@ -267,7 +280,7 @@ export default function App(){
   const [envForm, setEnvForm] = useState({name:"",emoji:"🛒",color:"#f43f8a",budget:"",owner:"shared"});
   const [recForm, setRecForm] = useState({label:"",emoji:"⚡",dayOfMonth:1,amount:"",splitType:"prorata",paidBy:"cap",envelopeId:"",color:"#f43f8a",note:""});
   const [incForm, setIncForm] = useState({label:"",amount:"",person:"cap",type:"salary",date:new Date().toISOString().slice(0,10),note:""});
-  const [setForm2,setSetForm2]= useState({ratioCap:43,nameCap:"Capucine",nameGui:"Guillaume",salCap:2200,salGui:2900});
+  const [setForm2,setSetForm2]= useState({ratioCap:42,nameCap:"Capucine",nameGui:"Guillaume",salCap:2100,salGui:2900});
 
   const ratio   = settings.ratioCap/100;
   const nameCap = settings.names?.[0]||"Capucine";
@@ -284,7 +297,7 @@ export default function App(){
         const parse=r=>r.status==="fulfilled"&&r.value?.value?JSON.parse(r.value.value):null;
         const [e,v,s,r,i,p]=res.map(parse);
         if(e)setExpenses(e); if(v)setEnvelopes(v);
-        if(s){setSettings(s);setSetForm2({ratioCap:s.ratioCap,nameCap:s.names[0],nameGui:s.names[1],salCap:s.salCap||2200,salGui:s.salGui||2900});}
+        if(s){setSettings(s);setSetForm2({ratioCap:s.ratioCap,nameCap:s.names[0],nameGui:s.names[1],salCap:s.salCap||2100,salGui:s.salGui||2900});}
         if(r)setRecurring(r); if(i)setIncomes(i); if(p)setRepayments(p);
       }catch{}
       setLoaded(true);
@@ -355,7 +368,7 @@ export default function App(){
   const soldeColor=Math.abs(netDebt)<0.01?"#3b82f6":netDebt>0?"#059669":"#be185d";
 
   // ── Budget widget ──
-  const SAL_CAP = settings.salCap||2200;
+  const SAL_CAP = settings.salCap||2100;
   const SAL_GUI = settings.salGui||2900;
   // Part de chaque personne dans chaque enveloppe selon le owner + splitType des dépenses
   // Budget alloué = somme des budgets des enveloppes (part perso)
@@ -425,7 +438,7 @@ export default function App(){
     showToast("✅ Remboursement enregistré !");
   }
   function saveSettings(){
-    const s={ratioCap:parseInt(setForm2.ratioCap)||43,names:[setForm2.nameCap,setForm2.nameGui],salCap:parseFloat(setForm2.salCap)||2200,salGui:parseFloat(setForm2.salGui)||2900};
+    const s={ratioCap:parseInt(setForm2.ratioCap)||42,names:[setForm2.nameCap,setForm2.nameGui],salCap:parseFloat(setForm2.salCap)||2100,salGui:parseFloat(setForm2.salGui)||2900};
     setSettings(s);persist(SK.set,s);setShowSettings(false);showToast("⚙️ Réglages sauvegardés !");
   }
 
@@ -616,75 +629,109 @@ export default function App(){
         {/* ═══ DASHBOARD ═══ */}
         {tab==="dashboard"&&(
           <div style={{display:"flex",flexDirection:"column",gap:12}}>
-            {/* Solde card */}
-            <div className={soldeClass}>
-              <div style={{fontSize:10,color:soldeColor,fontWeight:700,textTransform:"uppercase",letterSpacing:".14em",marginBottom:8}}>Solde du mois</div>
+
+            {/* ── HERO : solde + barre budget ── */}
+            <div className={soldeClass} style={{position:"relative",overflow:"hidden"}}>
+              <div style={{fontSize:10,color:soldeColor,fontWeight:700,textTransform:"uppercase",letterSpacing:".14em",marginBottom:6}}>
+                {MONTHS[filterMonth]} {filterYear}
+              </div>
               {Math.abs(netDebt)<0.01
-                ?<div style={{fontWeight:700,fontSize:20,color:"#3b82f6",marginBottom:12}}>🎉 Tout est équilibré !</div>
+                ?<div style={{fontWeight:700,fontSize:19,color:"#3b82f6",marginBottom:10}}>🎉 Tout est équilibré !</div>
                 :netDebt>0
-                  ?<div style={{marginBottom:12}}><span style={{fontWeight:600,fontSize:14,color:"#059669"}}>{nameGui} doit </span><span style={{fontWeight:800,fontSize:28,color:"#059669",letterSpacing:"-.03em"}}>{fmt(netDebt)}</span><span style={{fontWeight:600,fontSize:14,color:"#059669"}}> à {nameCap}</span></div>
-                  :<div style={{marginBottom:12}}><span style={{fontWeight:600,fontSize:14,color:"#be185d"}}>{nameCap} doit </span><span style={{fontWeight:800,fontSize:28,color:"#be185d",letterSpacing:"-.03em"}}>{fmt(Math.abs(netDebt))}</span><span style={{fontWeight:600,fontSize:14,color:"#be185d"}}> à {nameGui}</span></div>
+                  ?<div style={{marginBottom:10}}><span style={{fontWeight:600,fontSize:13,color:"#059669"}}>{nameGui} doit </span><span style={{fontWeight:800,fontSize:26,color:"#059669",letterSpacing:"-.03em"}}>{fmt(netDebt)}</span><span style={{fontWeight:600,fontSize:13,color:"#059669"}}> à {nameCap}</span></div>
+                  :<div style={{marginBottom:10}}><span style={{fontWeight:600,fontSize:13,color:"#be185d"}}>{nameCap} doit </span><span style={{fontWeight:800,fontSize:26,color:"#be185d",letterSpacing:"-.03em"}}>{fmt(Math.abs(netDebt))}</span><span style={{fontWeight:600,fontSize:13,color:"#be185d"}}> à {nameGui}</span></div>
               }
-              <div style={{display:"flex",gap:0,background:"rgba(255,255,255,.42)",borderRadius:12,padding:"10px 14px",backdropFilter:"blur(8px)",border:"1px solid rgba(255,255,255,.7)"}}>
-                {[["Total",fmt(totalSpent),"#374151"],[nameCap,fmt(capSpent),"#f43f8a"],[nameGui,fmt(guiSpent),"#8b5cf6"]].map(([l,v,c],i)=>(
-                  <div key={l} style={{flex:1,borderLeft:i>0?"1px solid rgba(0,0,0,.07)":undefined,paddingLeft:i>0?14:0}}>
-                    <div style={{fontSize:10,color:"#9ca3af",fontWeight:700,textTransform:"uppercase",letterSpacing:".08em"}}>{l}</div>
-                    <div style={{fontWeight:700,fontSize:14,color:c,marginTop:2}}>{v}</div>
-                  </div>
-                ))}
+              {/* Barre budget stackée compacte */}
+              <div style={{marginBottom:8}}>
+                <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
+                  <span style={{fontSize:11,color:"#6b7280",fontWeight:600}}>Budget couple · {fmt(totalSpent)} dépensés</span>
+                  <span style={{fontSize:11,color:"#9ca3af"}}>{fmt(capSpent+guiSpent)} / {fmt(SAL_CAP+SAL_GUI)}</span>
+                </div>
+                <div style={{height:8,borderRadius:99,background:"rgba(0,0,0,.07)",overflow:"hidden",display:"flex"}}>
+                  <div style={{width:`${Math.min(100,(capSpent/(SAL_CAP+SAL_GUI))*100)}%`,background:"linear-gradient(90deg,#f43f8acc,#f43f8a)",transition:"width .8s",flexShrink:0,borderRadius:"99px 0 0 99px"}}/>
+                  <div style={{width:`${Math.min(100,(guiSpent/(SAL_CAP+SAL_GUI))*100)}%`,background:"linear-gradient(90deg,#8b5cf6cc,#8b5cf6)",transition:"width .8s",flexShrink:0}}/>
+                  <div style={{flex:1,background:"rgba(16,185,129,.18)",borderRadius:"0 99px 99px 0"}}/>
+                </div>
+                <div style={{display:"flex",gap:10,marginTop:5}}>
+                  <span style={{fontSize:10,color:"#f43f8a",fontWeight:600}}>● {nameCap} {fmt(capSpent)}</span>
+                  <span style={{fontSize:10,color:"#8b5cf6",fontWeight:600}}>● {nameGui} {fmt(guiSpent)}</span>
+                  <span style={{fontSize:10,color:"#10b981",fontWeight:600,marginLeft:"auto"}}>Libre {fmt(Math.max(0,SAL_CAP+SAL_GUI-capBudgetAlloc-guiBudgetAlloc))}</span>
+                </div>
               </div>
             </div>
 
-            {/* Budget bars */}
-            <BudgetBar person="cap"/>
-            <BudgetBar person="gui"/>
-
-            {/* CTA */}
-            <button className="btn bp" style={{width:"100%",fontSize:15,padding:"14px"}} onClick={()=>setShowAddExp(true)}>+ Ajouter une dépense</button>
-
-            {/* Income summary */}
-            {(capIncome>0||guiIncome>0)&&(
-              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-                {[["cap",nameCap,"#f43f8a",capIncome,capSpent,capBalance],["gui",nameGui,"#8b5cf6",guiIncome,guiSpent,guiBalance]].map(([k,name,color,inc,sp,bal])=>(
-                  <div key={k} className="glass-sm" style={{padding:14,borderTop:`3px solid ${color}`}}>
-                    <div style={{fontWeight:700,fontSize:13,color,marginBottom:8}}>{name}</div>
-                    <div className="stat-row"><span style={{fontSize:12,color:"#9ca3af"}}>Revenus</span><span style={{fontSize:13,fontWeight:700,color:"#10b981"}}>{fmt(inc)}</span></div>
-                    <div className="stat-row"><span style={{fontSize:12,color:"#9ca3af"}}>Dépenses</span><span style={{fontSize:13,fontWeight:700,color}}>{fmt(sp)}</span></div>
-                    <div style={{display:"flex",justifyContent:"space-between",paddingTop:6}}>
-                      <span style={{fontSize:12,color:"#6b7280",fontWeight:600}}>Reste</span>
-                      <span style={{fontSize:15,fontWeight:800,color:bal>=0?"#10b981":"#f43f8a"}}>{fmt(bal)}</span>
+            {/* ── 2 MINI-CARTES perso ── */}
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+              {[
+                {person:"cap", name:nameCap, color:"#f43f8a", sal:SAL_CAP, alloc:capBudgetAlloc, spent:capSpent},
+                {person:"gui", name:nameGui, color:"#8b5cf6", sal:SAL_GUI, alloc:guiBudgetAlloc, spent:guiSpent},
+              ].map(({person,name,color,sal,alloc,spent})=>{
+                const reste=sal-alloc;
+                const overBudget=spent>alloc;
+                const spentPct=Math.min(100,spent/sal*100);
+                const allocPct=Math.min(100,alloc/sal*100);
+                return(
+                  <div key={person} style={{background:"rgba(255,255,255,.55)",backdropFilter:"blur(16px)",border:`1px solid rgba(255,255,255,.85)`,borderRadius:18,padding:"14px 14px 12px",borderTop:`3px solid ${color}`,cursor:"pointer"}} onClick={()=>{setEnvOwner(person);setTab("envelopes");}}>
+                    <div style={{fontWeight:700,fontSize:13,color,marginBottom:10}}>{person==="cap"?"👩":"👨"} {name}</div>
+                    {/* mini barre */}
+                    <div style={{height:6,borderRadius:99,background:"rgba(0,0,0,.07)",overflow:"hidden",display:"flex",marginBottom:8}}>
+                      <div style={{width:`${spentPct}%`,background:`linear-gradient(90deg,${color}99,${color})`,transition:"width .8s",flexShrink:0,borderRadius:"99px 0 0 99px"}}/>
+                      <div style={{width:`${Math.max(0,allocPct-spentPct)}%`,background:`${color}22`,flexShrink:0}}/>
+                      <div style={{flex:1,background:"rgba(16,185,129,.15)",borderRadius:"0 99px 99px 0"}}/>
                     </div>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {/* Upcoming recurring */}
-            {upcoming.length>0&&(
-              <div className="glass" style={{padding:16}}>
-                <div className="sect" style={{margin:"0 0 10px"}}>⏰ À venir cette semaine</div>
-                {upcoming.map(r=>{
-                  const dl=r.dayOfMonth-today;
-                  return(
-                    <div key={r.id} style={{display:"flex",alignItems:"center",gap:10,padding:"10px 12px",background:`linear-gradient(135deg,${r.color}10,${r.color}05)`,borderRadius:12,marginBottom:7,border:`1px solid ${r.color}22`}}>
-                      <div style={{width:38,height:38,borderRadius:10,background:r.color+"20",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}>{r.emoji}</div>
-                      <div style={{flex:1}}>
-                        <div style={{fontWeight:600,fontSize:14,color:"#1e1b2e"}}>{r.label}</div>
-                        <div style={{fontSize:13,color:"#6b7280",marginTop:1}}>{fmt(r.amount)}</div>
+                    <div style={{display:"flex",flexDirection:"column",gap:3}}>
+                      <div style={{display:"flex",justifyContent:"space-between"}}>
+                        <span style={{fontSize:11,color:"#9ca3af"}}>Dépensé</span>
+                        <span style={{fontSize:12,fontWeight:700,color:overBudget?"#ef4444":color}}>{fmt(spent)}</span>
                       </div>
-                      <span className="badge" style={{background:r.color+"18",color:r.color,fontSize:12}}>{dl===0?"Auj.":dl===1?"Dem.":`J+${dl}`}</span>
+                      <div style={{display:"flex",justifyContent:"space-between"}}>
+                        <span style={{fontSize:11,color:"#9ca3af"}}>Budgeté</span>
+                        <span style={{fontSize:12,fontWeight:600,color:"#6b7280"}}>{fmt(alloc)}</span>
+                      </div>
+                      <div style={{display:"flex",justifyContent:"space-between",paddingTop:3,borderTop:"1px solid rgba(0,0,0,.05)"}}>
+                        <span style={{fontSize:11,color:"#6b7280",fontWeight:600}}>Libre</span>
+                        <span style={{fontSize:13,fontWeight:800,color:reste>=0?"#10b981":"#ef4444"}}>{fmt(Math.max(0,reste))}</span>
+                      </div>
                     </div>
-                  );
-                })}
-              </div>
-            )}
+                    {overBudget&&<div style={{fontSize:10,color:"#ef4444",fontWeight:600,marginTop:6,background:"rgba(239,68,68,.07)",borderRadius:6,padding:"3px 7px"}}>⚠️ +{fmt(spent-alloc)}</div>}
+                  </div>
+                );
+              })}
+            </div>
 
-            {/* Envelopes summary */}
-            <div className="glass" style={{padding:16}}>
-              <div className="sect" style={{margin:"0 0 10px"}}>Enveloppes du mois</div>
+            {/* ── CTA ── */}
+            <button className="btn bp" style={{width:"100%",fontSize:15,padding:"13px"}} onClick={()=>setShowAddExp(true)}>+ Ajouter une dépense</button>
+
+            {/* ── ENVELOPPES compactes ── */}
+            <div className="glass" style={{padding:"14px 16px"}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+                <div className="sect" style={{margin:0}}>Enveloppes</div>
+                <button className="btn bg2 bsm" onClick={()=>setTab("envelopes")} style={{fontSize:11}}>Tout voir →</button>
+              </div>
               {envSpend.filter(e=>e.spent>0||e.budget>0).length===0
-                ?<div className="empty-state"><div className="empty-icon">✨</div><div className="empty-text">Aucune dépense ce mois.<br/>Commence par en ajouter une !</div></div>
-                :envSpend.filter(e=>e.spent>0||e.budget>0).map(env=><Gauge key={env.id} env={env} onClick={()=>{setEnvOwner(env.owner);setTab("envelopes");}}/>)
+                ?<div className="empty-state" style={{padding:"20px 0"}}><div className="empty-icon" style={{fontSize:28}}>✨</div><div className="empty-text">Aucune dépense ce mois</div></div>
+                :<div style={{display:"flex",flexDirection:"column",gap:7}}>
+                  {envSpend.filter(e=>e.spent>0||e.budget>0).map(env=>{
+                    const over=env.pct>100, warn=env.pct>85;
+                    const barColor=over?"#ef4444":warn?"#f97316":env.color;
+                    return(
+                      <div key={env.id} style={{cursor:"pointer"}} onClick={()=>{setEnvOwner(env.owner);setTab("envelopes");}}>
+                        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:3}}>
+                          <div style={{display:"flex",alignItems:"center",gap:6}}>
+                            <span style={{fontSize:14}}>{env.emoji}</span>
+                            <span style={{fontSize:13,fontWeight:600,color:"#1e1b2e"}}>{env.name}</span>
+                            <span style={{fontSize:10,color:"#d1d5db"}}>{env.owner==="shared"?"🤝":env.owner==="cap"?"👩":"👨"}</span>
+                          </div>
+                          <div style={{display:"flex",alignItems:"center",gap:6}}>
+                            {over&&<span style={{fontSize:10,color:"#ef4444",fontWeight:700}}>⚠️</span>}
+                            <span style={{fontSize:12,fontWeight:700,color:barColor}}>{fmt(env.spent)}{env.budget>0?<span style={{color:"#d1d5db",fontWeight:400}}> / {fmt(env.budget)}</span>:""}</span>
+                          </div>
+                        </div>
+                        {env.budget>0&&<div style={{height:4,borderRadius:99,background:"rgba(0,0,0,.06)",overflow:"hidden"}}><div style={{width:`${Math.min(100,env.pct||0)}%`,height:"100%",borderRadius:99,background:`linear-gradient(90deg,${barColor}88,${barColor})`,transition:"width .8s"}}/></div>}
+                      </div>
+                    );
+                  })}
+                </div>
               }
             </div>
           </div>
@@ -1198,6 +1245,9 @@ export default function App(){
           </div>
         </div>
       )}
+    </div>
+  );
+}
     </div>
   );
 }
