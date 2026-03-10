@@ -724,10 +724,17 @@ export default function App(){
                           </div>
                           <div style={{display:"flex",alignItems:"center",gap:6}}>
                             {over&&<span style={{fontSize:10,color:"#ef4444",fontWeight:700}}>⚠️</span>}
-                            <span style={{fontSize:12,fontWeight:700,color:barColor}}>{fmt(env.spent)}{env.budget>0?<span style={{color:"#d1d5db",fontWeight:400}}> / {fmt(env.budget)}</span>:""}</span>
+                            <span style={{fontSize:12,fontWeight:700,color:barColor}}>
+                              {fmt(env.spent)}
+                              {env.budget>0&&<span style={{color:"#d1d5db",fontWeight:400}}> / {fmt(env.budget)}</span>}
+                            </span>
                           </div>
                         </div>
-                        {env.budget>0&&<div style={{height:4,borderRadius:99,background:"rgba(0,0,0,.06)",overflow:"hidden"}}><div style={{width:`${Math.min(100,env.pct||0)}%`,height:"100%",borderRadius:99,background:`linear-gradient(90deg,${barColor}88,${barColor})`,transition:"width .8s"}}/></div>}
+                        {env.budget>0&&(
+                          <div style={{height:4,borderRadius:99,background:"rgba(0,0,0,.06)",overflow:"hidden"}}>
+                            <div style={{width:`${Math.min(100,env.pct||0)}%`,height:"100%",borderRadius:99,background:"linear-gradient(90deg,"+barColor+"88,"+barColor+")",transition:"width .8s"}}></div>
+                          </div>
+                        )}
                       </div>
                     );
                   })}
@@ -1245,9 +1252,6 @@ export default function App(){
           </div>
         </div>
       )}
-    </div>
-  );
-}
     </div>
   );
 }
