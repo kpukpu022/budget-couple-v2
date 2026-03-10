@@ -296,9 +296,11 @@ export default function App(){
         const res=await Promise.allSettled(Object.values(SK).map(k=>window.storage.get(k,true)));
         const parse=r=>r.status==="fulfilled"&&r.value?.value?JSON.parse(r.value.value):null;
         const [e,v,s,r,i,p]=res.map(parse);
-        if(e)setExpenses(e); if(v)setEnvelopes(v);
-        if(s){setSettings(s);setSetForm2({ratioCap:s.ratioCap,nameCap:s.names[0],nameGui:s.names[1],salCap:s.salCap||2100,salGui:s.salGui||2900});}
-        if(r)setRecurring(r); if(i)setIncomes(i); if(p)setRepayments(p);
+        if(e)setExpenses(e);
+        if(v)setEnvelopes(v); else await window.storage.set(SK.env,JSON.stringify(DEFAULT_ENVELOPES),true);
+        if(s){setSettings(s);setSetForm2({ratioCap:s.ratioCap,nameCap:s.names[0],nameGui:s.names[1],salCap:s.salCap||2100,salGui:s.salGui||2900});} else await window.storage.set(SK.set,JSON.stringify(DEFAULT_SETTINGS),true);
+        if(r)setRecurring(r); else await window.storage.set(SK.rec,JSON.stringify(DEFAULT_RECURRING),true);
+        if(i)setIncomes(i); if(p)setRepayments(p);
       }catch{}
       setLoaded(true);
     }
