@@ -27,12 +27,13 @@ const DEFAULT_ENVELOPES = [
   { id:"ep_abo", name:"Abonnements Cap",  emoji:"📱", color:"#f43f8a", budget:80,   owner:"cap"    },
   { id:"ep_spo", name:"Sport Cap",        emoji:"🏋️", color:"#ec4899", budget:49,   owner:"cap"    },
   { id:"ep_sho", name:"Shopping Cap",     emoji:"👗", color:"#f97316", budget:140,  owner:"cap"    },
-  { id:"ep_lib", name:"Liberté Cap",      emoji:"🎯", color:"#c026d3", budget:180,  owner:"cap"    },
+  { id:"ep_lib", name:"Liberté Cap",      emoji:"🎯", color:"#c026d3", budget:449,  owner:"cap"    },
   { id:"ep_etf", name:"Épargne Cap (ETF)",emoji:"📈", color:"#10b981", budget:260,  owner:"cap"    },
+  { id:"ep_epa", name:"Épargne Cap",       emoji:"🏦", color:"#06b6d4", budget:0,    owner:"cap"    },
   // 👨 GUILLAUME perso
   { id:"eg_abo", name:"Abonnements Gui",  emoji:"📱", color:"#3b82f6", budget:75,   owner:"gui"    },
   { id:"eg_sho", name:"Shopping Gui",     emoji:"🎮", color:"#8b5cf6", budget:180,  owner:"gui"    },
-  { id:"eg_lib", name:"Liberté Gui",      emoji:"🎯", color:"#14b8a6", budget:250,  owner:"gui"    },
+  { id:"eg_lib", name:"Liberté Gui",      emoji:"🎯", color:"#14b8a6", budget:778,  owner:"gui"    },
   { id:"eg_epa", name:"Épargne Gui",      emoji:"💰", color:"#06b6d4", budget:0,    owner:"gui"    },
 ];
 const DEFAULT_RECURRING = [
@@ -266,7 +267,7 @@ export default function App(){
   const [envForm, setEnvForm] = useState({name:"",emoji:"🛒",color:"#f43f8a",budget:"",owner:"shared"});
   const [recForm, setRecForm] = useState({label:"",emoji:"⚡",dayOfMonth:1,amount:"",splitType:"prorata",paidBy:"cap",envelopeId:"",color:"#f43f8a",note:""});
   const [incForm, setIncForm] = useState({label:"",amount:"",person:"cap",type:"salary",date:new Date().toISOString().slice(0,10),note:""});
-  const [setForm2,setSetForm2]= useState({ratioCap:60,nameCap:"Capucine",nameGui:"Guillaume"});
+  const [setForm2,setSetForm2]= useState({ratioCap:43,nameCap:"Capucine",nameGui:"Guillaume",salCap:2200,salGui:2900});
 
   const ratio   = settings.ratioCap/100;
   const nameCap = settings.names?.[0]||"Capucine";
@@ -283,7 +284,7 @@ export default function App(){
         const parse=r=>r.status==="fulfilled"&&r.value?.value?JSON.parse(r.value.value):null;
         const [e,v,s,r,i,p]=res.map(parse);
         if(e)setExpenses(e); if(v)setEnvelopes(v);
-        if(s){setSettings(s);setSetForm2({ratioCap:s.ratioCap,nameCap:s.names[0],nameGui:s.names[1]});}
+        if(s){setSettings(s);setSetForm2({ratioCap:s.ratioCap,nameCap:s.names[0],nameGui:s.names[1],salCap:s.salCap||2200,salGui:s.salGui||2900});}
         if(r)setRecurring(r); if(i)setIncomes(i); if(p)setRepayments(p);
       }catch{}
       setLoaded(true);
@@ -353,6 +354,24 @@ export default function App(){
   const soldeClass=Math.abs(netDebt)<0.01?"solde-zero":netDebt>0?"solde-pos":"solde-neg";
   const soldeColor=Math.abs(netDebt)<0.01?"#3b82f6":netDebt>0?"#059669":"#be185d";
 
+  // ── Budget widget ──
+  const SAL_CAP = settings.salCap||2200;
+  const SAL_GUI = settings.salGui||2900;
+  // Part de chaque personne dans chaque enveloppe selon le owner + splitType des dépenses
+  // Budget alloué = somme des budgets des enveloppes (part perso)
+  const capBudgetAlloc = envelopes.reduce((a,env)=>{
+    if(env.owner==="cap") return a+env.budget;
+    if(env.owner==="shared") return a+Math.round(env.budget*ratio);
+    return a;
+  },0);
+  const guiBudgetAlloc = envelopes.reduce((a,env)=>{
+    if(env.owner==="gui") return a+env.budget;
+    if(env.owner==="shared") return a+Math.round(env.budget*(1-ratio));
+    return a;
+  },0);
+  const capBudgetReste  = SAL_CAP - capBudgetAlloc;
+  const guiBudgetReste  = SAL_GUI - guiBudgetAlloc;
+
   // ── Actions ──
   function addExpense(data){const next=[data,...expenses];setExpenses(next);persist(SK.exp,next);}
   function saveExpForm(){
@@ -406,7 +425,7 @@ export default function App(){
     showToast("✅ Remboursement enregistré !");
   }
   function saveSettings(){
-    const s={ratioCap:parseInt(setForm2.ratioCap)||60,names:[setForm2.nameCap,setForm2.nameGui]};
+    const s={ratioCap:parseInt(setForm2.ratioCap)||43,names:[setForm2.nameCap,setForm2.nameGui],salCap:parseFloat(setForm2.salCap)||2200,salGui:parseFloat(setForm2.salGui)||2900};
     setSettings(s);persist(SK.set,s);setShowSettings(false);showToast("⚙️ Réglages sauvegardés !");
   }
 
@@ -443,6 +462,56 @@ export default function App(){
             ))}
           </div>
         </div>
+      </div>
+    );
+  };
+
+  // ── BudgetBar ──
+  const BudgetBar=({person})=>{
+    const isCap=person==="cap";
+    const sal    = isCap?SAL_CAP:SAL_GUI;
+    const alloc  = isCap?capBudgetAlloc:guiBudgetAlloc;
+    const spent  = isCap?capSpent:guiSpent;
+    const reste  = sal-alloc;
+    const color  = isCap?"#f43f8a":"#8b5cf6";
+    const name   = isCap?nameCap:nameGui;
+    const allocPct  = Math.min(100,alloc/sal*100);
+    const spentPct  = Math.min(allocPct,spent/sal*100);
+    const restePct  = Math.max(0,100-allocPct);
+    const overBudget= spent>alloc;
+    const overPct   = overBudget?Math.min(100,(spent-alloc)/sal*100):0;
+    return(
+      <div style={{background:"rgba(255,255,255,.55)",backdropFilter:"blur(14px)",border:"1px solid rgba(255,255,255,.8)",borderRadius:16,padding:"14px 16px",borderTop:`3px solid ${color}`}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+          <span style={{fontWeight:700,fontSize:14,color}}>{isCap?"👩":"👨"} {name}</span>
+          <span style={{fontSize:12,color:"#9ca3af",fontWeight:600}}>Salaire <span style={{color:"#374151",fontWeight:700}}>{fmt(sal)}</span></span>
+        </div>
+        {/* Barre stackée */}
+        <div style={{height:12,borderRadius:99,background:"rgba(0,0,0,.07)",overflow:"hidden",display:"flex",marginBottom:10}}>
+          {/* Dépensé */}
+          <div style={{width:`${spentPct}%`,background:`linear-gradient(90deg,${color}cc,${color})`,borderRadius:"99px 0 0 99px",transition:"width .8s cubic-bezier(.4,0,.2,1)",flexShrink:0}}/>
+          {/* Alloué restant (budgeté mais pas encore dépensé) */}
+          <div style={{width:`${Math.max(0,allocPct-spentPct-overPct)}%`,background:`${color}28`,transition:"width .8s",flexShrink:0}}/>
+          {/* Dépassement */}
+          {overBudget&&<div style={{width:`${overPct}%`,background:"#ef4444",borderRadius:"0 99px 99px 0",flexShrink:0}}/>}
+          {/* Reste non alloué */}
+          <div style={{flex:1,background:"rgba(16,185,129,.15)",borderRadius:restePct>0?"0 99px 99px 0":0}}/>
+        </div>
+        {/* Légende */}
+        <div style={{display:"flex",gap:0}}>
+          {[
+            ["Dépensé",fmt(spent),color],
+            ["Budgeté",fmt(alloc),`${color}88`],
+            ["Libre",fmt(Math.max(0,reste)),"#10b981"],
+          ].map(([l,v,c],i)=>(
+            <div key={l} style={{flex:1,borderLeft:i>0?"1px solid rgba(0,0,0,.06)":undefined,paddingLeft:i>0?10:0}}>
+              <div style={{fontSize:9,color:"#9ca3af",fontWeight:700,textTransform:"uppercase",letterSpacing:".07em"}}>{l}</div>
+              <div style={{fontSize:13,fontWeight:700,color:c,marginTop:2}}>{v}</div>
+            </div>
+          ))}
+        </div>
+        {overBudget&&<div style={{marginTop:8,fontSize:12,color:"#ef4444",fontWeight:600,background:"rgba(239,68,68,.08)",borderRadius:8,padding:"5px 10px"}}>⚠️ Dépassement de {fmt(spent-alloc)} ce mois !</div>}
+        {reste>0&&spent===0&&<div style={{marginTop:8,fontSize:12,color:"#9ca3af",background:"rgba(255,255,255,.5)",borderRadius:8,padding:"5px 10px"}}>💡 {fmt(reste)} non alloués — pense à ajuster tes enveloppes</div>}
       </div>
     );
   };
@@ -566,6 +635,10 @@ export default function App(){
               </div>
             </div>
 
+            {/* Budget bars */}
+            <BudgetBar person="cap"/>
+            <BudgetBar person="gui"/>
+
             {/* CTA */}
             <button className="btn bp" style={{width:"100%",fontSize:15,padding:"14px"}} onClick={()=>setShowAddExp(true)}>+ Ajouter une dépense</button>
 
@@ -620,6 +693,15 @@ export default function App(){
         {/* ═══ ENVELOPES ═══ */}
         {tab==="envelopes"&&(
           <div>
+            {/* Budget summary */}
+            {envOwner==="cap"&&<div style={{marginBottom:12}}><BudgetBar person="cap"/></div>}
+            {envOwner==="gui"&&<div style={{marginBottom:12}}><BudgetBar person="gui"/></div>}
+            {envOwner==="shared"&&(
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10,marginBottom:12}}>
+                <BudgetBar person="cap"/>
+                <BudgetBar person="gui"/>
+              </div>
+            )}
             <div style={{display:"flex",gap:7,marginBottom:14}}>
               {["shared","cap","gui"].map(o=><button key={o} className={`otab${envOwner===o?" on":""}`} onClick={()=>setEnvOwner(o)}>{o==="shared"?"🤝 Commun":o==="cap"?`👩 ${nameCap}`:`👨 ${nameGui}`}</button>)}
             </div>
@@ -1095,6 +1177,10 @@ export default function App(){
               <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
                 <div className="fl"><label>Prénom 1</label><input value={setForm2.nameCap} onChange={e=>setSetForm2({...setForm2,nameCap:e.target.value})}/></div>
                 <div className="fl"><label>Prénom 2</label><input value={setForm2.nameGui} onChange={e=>setSetForm2({...setForm2,nameGui:e.target.value})}/></div>
+              </div>
+              <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+                <div className="fl"><label>Salaire {setForm2.nameCap} €</label><input type="number" placeholder="2200" value={setForm2.salCap||""} onChange={e=>setSetForm2({...setForm2,salCap:e.target.value})}/></div>
+                <div className="fl"><label>Salaire {setForm2.nameGui} €</label><input type="number" placeholder="2900" value={setForm2.salGui||""} onChange={e=>setSetForm2({...setForm2,salGui:e.target.value})}/></div>
               </div>
               <div className="fl">
                 <label>Part de {setForm2.nameCap} (pro rata %)</label>
