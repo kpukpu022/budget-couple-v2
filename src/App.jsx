@@ -11,23 +11,42 @@ const MONTHS  = ["Janvier","Février","Mars","Avril","Mai","Juin","Juillet","Ao�
 const MSHT    = ["Jan","Fév","Mar","Avr","Mai","Jun","Jul","Aoû","Sep","Oct","Nov","Déc"];
 const DAYS_S  = ["L","M","M","J","V","S","D"];
 
-const DEFAULT_SETTINGS = { ratioCap:60, names:["Capucine","Guillaume"] };
+const DEFAULT_SETTINGS = { ratioCap:43, names:["Capucine","Guillaume"] };
 const DEFAULT_ENVELOPES = [
-  { id:"ec1", name:"Courses",        emoji:"🛒", color:"#f43f8a", budget:400, owner:"shared" },
-  { id:"ec2", name:"Loyer & charges",emoji:"🏠", color:"#8b5cf6", budget:0,   owner:"shared" },
-  { id:"ec3", name:"Sorties",        emoji:"🍽️", color:"#3b82f6", budget:200, owner:"shared" },
-  { id:"ec4", name:"Transport",      emoji:"🚆", color:"#10b981", budget:150, owner:"shared" },
-  { id:"ec5", name:"Santé",          emoji:"💊", color:"#06b6d4", budget:50,  owner:"shared" },
-  { id:"ep1", name:"Mode & beauté",  emoji:"👗", color:"#ec4899", budget:80,  owner:"cap"    },
-  { id:"ep2", name:"Loisirs Cap",    emoji:"🎯", color:"#f97316", budget:60,  owner:"cap"    },
-  { id:"eg1", name:"Loisirs Gui",    emoji:"🎮", color:"#6366f1", budget:60,  owner:"gui"    },
-  { id:"eg2", name:"Sport Gui",      emoji:"🏋️", color:"#14b8a6", budget:40,  owner:"gui"    },
-  { id:"ea1", name:"Autre",          emoji:"📦", color:"#f59e0b", budget:0,   owner:"shared" },
+  // 🤝 COMMUN (pro rata 43/57)
+  { id:"ec_loy", name:"Loyer",            emoji:"🏠", color:"#8b5cf6", budget:1280, owner:"shared" },
+  { id:"ec_box", name:"Box & assur. hab", emoji:"📡", color:"#3b82f6", budget:49,   owner:"shared" },
+  { id:"ec_voi", name:"Assurance voiture",emoji:"🚗", color:"#6366f1", budget:62,   owner:"shared" },
+  { id:"ec_cou", name:"Courses",          emoji:"🛒", color:"#f43f8a", budget:500,  owner:"shared" },
+  { id:"ec_ext", name:"Extras & snacks",  emoji:"🧃", color:"#10b981", budget:64,   owner:"shared" },
+  { id:"ec_res", name:"Restos",           emoji:"🍽️", color:"#f97316", budget:100,  owner:"shared" },
+  { id:"ec_caf", name:"Cafés",            emoji:"☕", color:"#f59e0b", budget:64,   owner:"shared" },
+  { id:"ec_bar", name:"Bars & sorties",   emoji:"🍷", color:"#ec4899", budget:40,   owner:"shared" },
+  { id:"ec_mai", name:"Maison & déco",    emoji:"🛋️", color:"#14b8a6", budget:70,   owner:"shared" },
+  // 👩 CAPUCINE perso
+  { id:"ep_abo", name:"Abonnements Cap",  emoji:"📱", color:"#f43f8a", budget:80,   owner:"cap"    },
+  { id:"ep_spo", name:"Sport Cap",        emoji:"🏋️", color:"#ec4899", budget:49,   owner:"cap"    },
+  { id:"ep_sho", name:"Shopping Cap",     emoji:"👗", color:"#f97316", budget:140,  owner:"cap"    },
+  { id:"ep_lib", name:"Liberté Cap",      emoji:"🎯", color:"#c026d3", budget:180,  owner:"cap"    },
+  { id:"ep_etf", name:"Épargne Cap (ETF)",emoji:"📈", color:"#10b981", budget:260,  owner:"cap"    },
+  // 👨 GUILLAUME perso
+  { id:"eg_abo", name:"Abonnements Gui",  emoji:"📱", color:"#3b82f6", budget:75,   owner:"gui"    },
+  { id:"eg_sho", name:"Shopping Gui",     emoji:"🎮", color:"#8b5cf6", budget:180,  owner:"gui"    },
+  { id:"eg_lib", name:"Liberté Gui",      emoji:"🎯", color:"#14b8a6", budget:250,  owner:"gui"    },
+  { id:"eg_epa", name:"Épargne Gui",      emoji:"💰", color:"#06b6d4", budget:0,    owner:"gui"    },
 ];
 const DEFAULT_RECURRING = [
-  { id:"r1", label:"Loyer",       emoji:"🏠", dayOfMonth:1,  amount:800, splitType:"prorata", paidBy:"cap", envelopeId:"ec2", color:"#8b5cf6", note:"" },
-  { id:"r2", label:"Facture EDF", emoji:"⚡", dayOfMonth:5,  amount:80,  splitType:"prorata", paidBy:"cap", envelopeId:"ec2", color:"#f59e0b", note:"Variable" },
-  { id:"r3", label:"Internet",    emoji:"📱", dayOfMonth:10, amount:35,  splitType:"equal",   paidBy:"gui", envelopeId:"ec2", color:"#3b82f6", note:"" },
+  { id:"r1",  label:"Loyer",             emoji:"🏠", dayOfMonth:1,  amount:1280, splitType:"prorata",  paidBy:"cap", envelopeId:"ec_loy", color:"#8b5cf6", note:"Charges comprises" },
+  { id:"r2",  label:"Electricite EDF",   emoji:"⚡", dayOfMonth:5,  amount:83,   splitType:"prorata",  paidBy:"cap", envelopeId:"ec_box", color:"#f59e0b", note:"Variable" },
+  { id:"r3",  label:"Box internet",      emoji:"📡", dayOfMonth:10, amount:25,   splitType:"prorata",  paidBy:"gui", envelopeId:"ec_box", color:"#3b82f6", note:"" },
+  { id:"r4",  label:"Assurance hab.",    emoji:"🔒", dayOfMonth:10, amount:24,   splitType:"prorata",  paidBy:"cap", envelopeId:"ec_box", color:"#6366f1", note:"" },
+  { id:"r5",  label:"Assurance voiture", emoji:"🚗", dayOfMonth:5,  amount:62,   splitType:"prorata",  paidBy:"cap", envelopeId:"ec_voi", color:"#6366f1", note:"" },
+  { id:"r6",  label:"Forfait Gui",       emoji:"📱", dayOfMonth:5,  amount:16,   splitType:"gui_only", paidBy:"gui", envelopeId:"eg_abo", color:"#3b82f6", note:"" },
+  { id:"r7",  label:"Apple Cloud Gui",   emoji:"📱", dayOfMonth:15, amount:10,   splitType:"gui_only", paidBy:"gui", envelopeId:"eg_abo", color:"#3b82f6", note:"" },
+  { id:"r8",  label:"Train Gui",         emoji:"🚆", dayOfMonth:1,  amount:45,   splitType:"gui_only", paidBy:"gui", envelopeId:"eg_abo", color:"#10b981", note:"Domicile-travail" },
+  { id:"r9",  label:"Abonnements Cap",   emoji:"📱", dayOfMonth:5,  amount:80,   splitType:"cap_only", paidBy:"cap", envelopeId:"ep_abo", color:"#f43f8a", note:"Apple, Claude, Google" },
+  { id:"r10", label:"Sport Cap",         emoji:"🏋️", dayOfMonth:1,  amount:49,   splitType:"cap_only", paidBy:"cap", envelopeId:"ep_spo", color:"#ec4899", note:"" },
+  { id:"r12", label:"ETF Cap",            emoji:"📈", dayOfMonth:2,  amount:260,  splitType:"cap_only", paidBy:"cap", envelopeId:"ep_etf", color:"#10b981", note:"Epargne perso Cap" },
 ];
 const SPLIT_OPTS = [
   { key:"prorata", icon:"⚖️", label:"Pro rata" },
