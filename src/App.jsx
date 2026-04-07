@@ -354,7 +354,7 @@ export default function App(){
   const capBalance  =capIncome-capSpent;
   const guiBalance  =guiIncome-guiSpent;
   const rawDebt     =filtExp.reduce((a,e)=>a+e.balance,0);
-  const repaidThisMonth=repayments.filter(r=>{const d=new Date(r.date);return d.getMonth()===filterMonth&&d.getFullYear()===filterYear;}).reduce((a,r)=>a+r.amount,0);
+  const repaidThisMonth=repayments.filter(r=>{if(r.month!==undefined) return r.month===filterMonth&&r.year===filterYear; const d=new Date(r.date);return d.getMonth()===filterMonth&&d.getFullYear()===filterYear;}).reduce((a,r)=>a+r.amount,0);
   const netDebt     =rawDebt-repaidThisMonth;
 
   const envSpend=envelopes.map(env=>{
@@ -450,8 +450,12 @@ export default function App(){
     showToast("💰 Revenu ajouté !");
   }
   function delInc(id){const n=incomes.filter(i=>i.id!==id);setIncomes(n);persist(SK.inc,n);showToast("🗑️ Revenu supprimé");}
+  function delRepayment(id){const n=repayments.filter(r=>r.id!==id);setRepayments(n);persist(SK.rep,n);showToast("🗑️ Remboursement supprimé");}
   function markRepaid(amount){
-    const entry={id:gid(),amount,date:new Date().toISOString().slice(0,10)};
+    // Date = 1er du mois affiché pour que le remboursement reste dans le bon mois
+    const d=new Date(filterYear,filterMonth,1);
+    const dateStr=d.toISOString().slice(0,10);
+    const entry={id:gid(),amount,date:dateStr,month:filterMonth,year:filterYear};
     const next=[entry,...repayments];setRepayments(next);persist(SK.rep,next);
     showToast("✅ Remboursement enregistré !");
   }
@@ -955,9 +959,12 @@ export default function App(){
               <div className="glass" style={{padding:16}}>
                 <div className="sect" style={{margin:"0 0 10px"}}>Historique remboursements</div>
                 {repayments.slice(0,8).map(r=>(
-                  <div key={r.id} style={{display:"flex",justifyContent:"space-between",padding:"6px 0",borderBottom:"1px solid rgba(0,0,0,.05)"}}>
+                  <div key={r.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"6px 0",borderBottom:"1px solid rgba(0,0,0,.05)"}}>
                     <span style={{fontSize:12,color:"#9ca3af"}}>{r.date}</span>
-                    <span style={{fontSize:12,fontWeight:700,color:"#10b981"}}>✅ {fmt(r.amount)}</span>
+                    <div style={{display:"flex",alignItems:"center",gap:8}}>
+                      <span style={{fontSize:12,fontWeight:700,color:"#10b981"}}>✅ {fmt(r.amount)}</span>
+                      <button className="btn bg2 bsm" style={{color:"#f43f8a",fontSize:11,padding:"2px 7px"}} onClick={()=>delRepayment(r.id)}>🗑️</button>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -1274,6 +1281,9 @@ export default function App(){
           </div>
         </div>
       )}
+    </div>
+  );
+}
     </div>
   );
 }
