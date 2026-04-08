@@ -186,7 +186,7 @@ export default function App(){
   const [editRec,    setEditRec]    = useState(null);
 
   const [expForm, setExpForm] = useState({label:"",amount:"",envelopeId:"",paidBy:"cap",splitType:"prorata",capShare:"",date:new Date().toISOString().slice(0,10),note:""});
-  const [incForm, setIncForm] = useState({label:"",amount:"",splitType:"cap_only",capShare:"",type:"salary",date:new Date().toISOString().slice(0,10),note:""});
+  const [incForm, setIncForm] = useState({label:"",amount:"",splitType:"cap_only",capShare:"",receivedBy:"cap",type:"salary",date:new Date().toISOString().slice(0,10),note:""});
   const [envForm, setEnvForm] = useState({name:"",emoji:"🛒",color:"#f43f8a",budget:"",owner:"shared"});
   const [recForm, setRecForm] = useState({label:"",emoji:"⚡",dayOfMonth:1,amount:"",splitType:"prorata",paidBy:"cap",envelopeId:"",color:"#f43f8a"});
   const [setForm, setSetForm] = useState({...DEFAULT_SETTINGS});
@@ -236,7 +236,17 @@ export default function App(){
   const guiIncome  = filtInc.reduce((a,i)=>a+(i.guiPart!==undefined?i.guiPart:i.person==="gui"?i.amount:0),0);
   const rawDebt    = filtExp.reduce((a,e)=>a+(e.balance||0),0);
   const totalRepaid= filtRep.reduce((a,r)=>a+r.amount,0);
-  const netDebt    = rawDebt - totalRepaid;
+  // revenus partagés : si Cap a encaissé un revenu partagé → Gui lui doit sa part (réduit sa dette)
+  // incomeBalance > 0 = Gui doit davantage à Cap (ou Cap doit moins à Gui)
+  const incomeBalance = filtInc.reduce((a,i)=>{
+    if(!i.guiPart || i.splitType==="cap_only") return a; // perso Cap → no impact
+    if(i.splitType==="gui_only") return a; // perso Gui → no impact
+    // revenu partagé : qui a reçu l'argent physiquement ?
+    const recv = i.receivedBy||"cap"; // défaut Cap
+    if(recv==="cap") return a + i.guiPart; // Cap a encaissé → Gui lui doit sa part
+    return a - i.capPart; // Gui a encaissé → Cap lui doit sa part
+  },0);
+  const netDebt    = rawDebt + incomeBalance - totalRepaid;
 
   const envSpend = envelopes.map(env=>{
     const spent=filtExp.filter(e=>e.envelopeId===env.id).reduce((a,e)=>a+e.amount,0);
@@ -282,8 +292,9 @@ export default function App(){
     const entry={id:gid(),label:incForm.label,amount:amt,splitType:incForm.splitType,capPart:parseFloat(cp.toFixed(2)),guiPart:parseFloat(gp.toFixed(2)),type:incForm.type,date:incForm.date,note:incForm.note};
     // Si perso → person garde pour affichage, sinon shared
     entry.person = incForm.splitType==="cap_only"?"cap":incForm.splitType==="gui_only"?"gui":"shared";
+    entry.receivedBy = incForm.receivedBy||"cap";
     const next=[entry,...incomes];setIncomes(next);persist(SK.inc,next);
-    setShowAddInc(false);setIncForm({label:"",amount:"",splitType:"cap_only",capShare:"",type:"salary",date:new Date().toISOString().slice(0,10),note:""});
+    setShowAddInc(false);setIncForm({label:"",amount:"",splitType:"cap_only",capShare:"",receivedBy:"cap",type:"salary",date:new Date().toISOString().slice(0,10),note:""});
     showT("💰 Revenu ajouté !");
   }
   function delInc(id){const n=incomes.filter(i=>i.id!==id);setIncomes(n);persist(SK.inc,n);showT("🗑️ Supprimé");}
@@ -360,18 +371,47 @@ export default function App(){
             {Math.abs(netDebt)>1&&<button className="chip on" style={{borderRadius:25,padding:"12px 25px",marginTop:8}} onClick={markRepaid}>Solder la dette</button>}
           </div>
 
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:15,marginBottom:25}}>
-            <div className="glass" style={{padding:18}}>
-              <div className="hero-lbl">Part {nameCap}</div>
-              <div style={{fontSize:20,fontWeight:900,color:"var(--p)",marginTop:4}}>{fmt(capSpent)}</div>
-              {capIncome>0&&<div style={{fontSize:11,color:"var(--acc)",fontWeight:700,marginTop:4}}>+{fmt(capIncome)} revenus</div>}
-            </div>
-            <div className="glass" style={{padding:18}}>
-              <div className="hero-lbl">Part {nameGui}</div>
-              <div style={{fontSize:20,fontWeight:900,color:"var(--s)",marginTop:4}}>{fmt(guiSpent)}</div>
-              {guiIncome>0&&<div style={{fontSize:11,color:"var(--acc)",fontWeight:700,marginTop:4}}>+{fmt(guiIncome)} revenus</div>}
-            </div>
-          </div>
+          {/* ── Jauges budget perso ── */}
+          {[
+            {name:nameCap,color:"var(--p)",colHex:"#f43f8a",sal:settings.salCap||2100,spent:capSpent,income:capIncome,
+             budgeted:envelopes.filter(e=>e.owner==="cap").reduce((a,e)=>a+e.budget,0)+envelopes.filter(e=>e.owner==="shared").reduce((a,e)=>a+e.budget*ratio,0)},
+            {name:nameGui,color:"var(--s)",colHex:"#8b5cf6",sal:settings.salGui||2900,spent:guiSpent,income:guiIncome,
+             budgeted:envelopes.filter(e=>e.owner==="gui").reduce((a,e)=>a+e.budget,0)+envelopes.filter(e=>e.owner==="shared").reduce((a,e)=>a+e.budget*(1-ratio),0)},
+          ].map(({name,color,colHex,sal,spent,income,budgeted})=>{
+            const salNet = sal + income;
+            const spentPct   = Math.min(100, spent/salNet*100);
+            const budgetedPct= Math.min(100, budgeted/salNet*100);
+            const restePct   = Math.max(0, 100-budgetedPct);
+            const over       = spent>budgeted;
+            return(
+              <div key={name} className="glass" style={{padding:18,marginBottom:14}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+                  <div>
+                    <div className="hero-lbl">{name}</div>
+                    <div style={{fontSize:20,fontWeight:900,color,marginTop:2}}>{fmt(spent)}<span style={{fontSize:12,fontWeight:600,color:"#94a3b8"}}> / {fmt(salNet)}</span></div>
+                  </div>
+                  <div style={{textAlign:"right"}}>
+                    {income>0&&<div style={{fontSize:11,color:"var(--acc)",fontWeight:700,marginBottom:2}}>+{fmt(income)} revenus</div>}
+                    <div style={{fontSize:11,fontWeight:800,color:over?"var(--err)":"var(--acc)"}}>{over?"⚠️ Dépassé":"💚 "+fmt(Math.max(0,budgeted-spent))+" restants"}</div>
+                  </div>
+                </div>
+                {/* Barre stackée : dépensé | budgété restant | libre */}
+                <div style={{height:14,borderRadius:99,background:"rgba(0,0,0,0.06)",overflow:"hidden",display:"flex",marginBottom:8}}>
+                  {/* Dépensé */}
+                  <div style={{width:spentPct+"%",background:"linear-gradient(90deg,"+colHex+"cc,"+colHex+")",borderRadius:"99px 0 0 99px",flexShrink:0,transition:"width 1s cubic-bezier(.34,1.56,.64,1)"}}/>
+                  {/* Budgété restant */}
+                  <div style={{width:Math.max(0,budgetedPct-spentPct)+"%",background:colHex+"28",flexShrink:0,transition:"width 1s"}}/>
+                  {/* Libre non budgété */}
+                  <div style={{flex:1,background:"rgba(16,185,129,0.15)",borderRadius:"0 99px 99px 0"}}/>
+                </div>
+                <div style={{display:"flex",gap:14,fontSize:10,fontWeight:700}}>
+                  <span style={{color}}><span style={{opacity:0.6}}>● </span>Dépensé {Math.round(spentPct)}%</span>
+                  <span style={{color:colHex,opacity:0.5}}><span style={{opacity:0.6}}>● </span>Budgété {Math.round(budgetedPct)}%</span>
+                  <span style={{color:"#10b981",marginLeft:"auto"}}><span style={{opacity:0.6}}>● </span>Libre {fmt(Math.max(0,salNet-budgeted))}</span>
+                </div>
+              </div>
+            );
+          })}
 
           <div className="hero-lbl" style={{marginBottom:12}}>Budget Commun ({settings.ratioCap}%)</div>
           {envSpend.filter(e=>e.owner==="shared").map(env=>(
@@ -685,12 +725,20 @@ export default function App(){
                 <button className={"chip acc"+(incForm.splitType==="custom"?" on":"")} style={{flex:"none"}} onClick={()=>setIncForm({...incForm,splitType:"custom"})}>✏️ Perso</button>
               </div>
               {incForm.splitType==="custom"&&<input type="number" placeholder={"Part de "+nameCap+" (€)"} value={incForm.capShare} onChange={e=>setIncForm({...incForm,capShare:e.target.value})} style={{marginTop:12}}/>}
-              {(incForm.splitType==="prorata"||incForm.splitType==="equal")&&incForm.amount&&(
+              {(incForm.splitType==="prorata"||incForm.splitType==="equal"||incForm.splitType==="custom")&&incForm.amount&&(
                 <div style={{marginTop:10,fontSize:12,color:"#94a3b8",display:"flex",gap:12}}>
-                  {(()=>{const [cp,gp]=computeParts(parseFloat(incForm.amount)||0,incForm.splitType,"",ratio); return <><span style={{color:"var(--p)",fontWeight:700}}>👩 +{fmt(cp)}</span><span style={{color:"var(--s)",fontWeight:700}}>👨 +{fmt(gp)}</span></>})()}
+                  {(()=>{const [cp,gp]=computeParts(parseFloat(incForm.amount)||0,incForm.splitType,incForm.capShare,ratio); return <><span style={{color:"var(--p)",fontWeight:700}}>👩 +{fmt(cp)}</span><span style={{color:"var(--s)",fontWeight:700}}>👨 +{fmt(gp)}</span></>})()}
                 </div>
               )}
               </div>
+              {(incForm.splitType!=="cap_only"&&incForm.splitType!=="gui_only")&&(
+              <div><label className="hero-lbl">Qui a encaissé l'argent ?</label>
+              <div style={{display:"flex",gap:10,marginTop:10}}>
+                <button className={"chip acc"+(incForm.receivedBy==="cap"?" on":"")} onClick={()=>setIncForm({...incForm,receivedBy:"cap"})}>{nameCap}</button>
+                <button className={"chip acc"+(incForm.receivedBy==="gui"?" on":"")} onClick={()=>setIncForm({...incForm,receivedBy:"gui"})}>{nameGui}</button>
+              </div>
+              <div style={{fontSize:11,color:"#94a3b8",marginTop:6}}>La part de l'autre sera déduite de la dette 💡</div>
+              </div>)}
               <div><label className="hero-lbl">Type</label>
               <div style={{display:"flex",flexWrap:"wrap",gap:8,marginTop:10}}>
                 {INC_TYPES.map(t=><button key={t.key} className={"chip acc"+(incForm.type===t.key?" on":"")} style={{flex:"none"}} onClick={()=>setIncForm({...incForm,type:t.key})}>{t.emoji} {t.label}</button>)}
