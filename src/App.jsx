@@ -186,7 +186,7 @@ export default function App(){
   const [editRec,    setEditRec]    = useState(null);
 
   const [expForm, setExpForm] = useState({label:"",amount:"",envelopeId:"",paidBy:"cap",splitType:"prorata",capShare:"",date:new Date().toISOString().slice(0,10),note:""});
-  const [incForm, setIncForm] = useState({label:"",amount:"",person:"cap",type:"salary",date:new Date().toISOString().slice(0,10),note:""});
+  const [incForm, setIncForm] = useState({label:"",amount:"",splitType:"cap_only",capShare:"",type:"salary",date:new Date().toISOString().slice(0,10),note:""});
   const [envForm, setEnvForm] = useState({name:"",emoji:"🛒",color:"#f43f8a",budget:"",owner:"shared"});
   const [recForm, setRecForm] = useState({label:"",emoji:"⚡",dayOfMonth:1,amount:"",splitType:"prorata",paidBy:"cap",envelopeId:"",color:"#f43f8a"});
   const [setForm, setSetForm] = useState({...DEFAULT_SETTINGS});
@@ -232,8 +232,8 @@ export default function App(){
   const totalSpent = filtExp.reduce((a,e)=>a+e.amount,0);
   const capSpent   = filtExp.reduce((a,e)=>a+e.capPart,0);
   const guiSpent   = filtExp.reduce((a,e)=>a+e.guiPart,0);
-  const capIncome  = filtInc.filter(i=>i.person==="cap").reduce((a,i)=>a+i.amount,0);
-  const guiIncome  = filtInc.filter(i=>i.person==="gui").reduce((a,i)=>a+i.amount,0);
+  const capIncome  = filtInc.reduce((a,i)=>a+(i.capPart!==undefined?i.capPart:i.person==="cap"?i.amount:0),0);
+  const guiIncome  = filtInc.reduce((a,i)=>a+(i.guiPart!==undefined?i.guiPart:i.person==="gui"?i.amount:0),0);
   const rawDebt    = filtExp.reduce((a,e)=>a+(e.balance||0),0);
   const totalRepaid= filtRep.reduce((a,r)=>a+r.amount,0);
   const netDebt    = rawDebt - totalRepaid;
@@ -278,8 +278,12 @@ export default function App(){
   function addIncome(){
     const amt=parseFloat(incForm.amount);
     if(!incForm.label.trim()||isNaN(amt)||amt<=0) return;
-    const next=[{id:gid(),...incForm,amount:amt},...incomes];setIncomes(next);persist(SK.inc,next);
-    setShowAddInc(false);setIncForm({label:"",amount:"",person:"cap",type:"salary",date:new Date().toISOString().slice(0,10),note:""});
+    const [cp,gp]=computeParts(amt,incForm.splitType,incForm.capShare,ratio);
+    const entry={id:gid(),label:incForm.label,amount:amt,splitType:incForm.splitType,capPart:parseFloat(cp.toFixed(2)),guiPart:parseFloat(gp.toFixed(2)),type:incForm.type,date:incForm.date,note:incForm.note};
+    // Si perso → person garde pour affichage, sinon shared
+    entry.person = incForm.splitType==="cap_only"?"cap":incForm.splitType==="gui_only"?"gui":"shared";
+    const next=[entry,...incomes];setIncomes(next);persist(SK.inc,next);
+    setShowAddInc(false);setIncForm({label:"",amount:"",splitType:"cap_only",capShare:"",type:"salary",date:new Date().toISOString().slice(0,10),note:""});
     showT("💰 Revenu ajouté !");
   }
   function delInc(id){const n=incomes.filter(i=>i.id!==id);setIncomes(n);persist(SK.inc,n);showT("🗑️ Supprimé");}
@@ -501,7 +505,15 @@ export default function App(){
                     <div style={{width:40,height:40,borderRadius:11,background:"rgba(16,185,129,0.1)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:18,flexShrink:0}}>{t.emoji}</div>
                     <div style={{flex:1}}>
                       <div style={{fontWeight:700,fontSize:14}}>{i.label}</div>
-                      <div style={{fontSize:11,color:"#94a3b8"}}>{i.person==="cap"?nameCap:nameGui} · {i.date}</div>
+                      <div style={{fontSize:11,color:"#94a3b8"}}>
+                        {i.splitType==="prorata"?"⚖️ Pro rata":i.splitType==="equal"?"🤝 50/50":i.splitType==="gui_only"?"👨 "+nameGui:"👩 "+nameCap}
+                        {" · "}{i.date}
+                      </div>
+                      {i.splitType!=="cap_only"&&i.splitType!=="gui_only"&&i.capPart!==undefined&&(
+                        <div style={{fontSize:10,color:"#94a3b8",marginTop:1}}>
+                          <span style={{color:"var(--p)",fontWeight:700}}>+{fmt(i.capPart)}</span> · <span style={{color:"var(--s)",fontWeight:700}}>+{fmt(i.guiPart)}</span>
+                        </div>
+                      )}
                     </div>
                     <div style={{display:"flex",alignItems:"center",gap:8}}>
                       <span style={{fontWeight:900,color:"var(--acc)",fontSize:15}}>+{fmt(i.amount)}</span>
@@ -597,7 +609,7 @@ export default function App(){
           {qaPreview&&(
             <div className="qa-preview">
               {qaPreview._isIncome
-                ?<><span>💰</span><span className="qa-tag" style={{background:"rgba(0,0,0,0.05)",color:"#374151"}}>{qaPreview.label}</span><span className="qa-tag" style={{background:"rgba(16,185,129,0.12)",color:"var(--acc)",fontWeight:800}}>+{fmt(qaPreview.amount)}</span><span className="qa-tag" style={{background:"rgba(16,185,129,0.07)",color:"#059669"}}>{qaPreview.person==="cap"?"👩 "+nameCap:"👨 "+nameGui}</span></>
+                ?<><span>💰</span><span className="qa-tag" style={{background:"rgba(0,0,0,0.05)",color:"#374151"}}>{qaPreview.label}</span><span className="qa-tag" style={{background:"rgba(16,185,129,0.12)",color:"var(--acc)",fontWeight:800}}>+{fmt(qaPreview.amount)}</span><span className="qa-tag" style={{background:"rgba(16,185,129,0.07)",color:"#059669"}}>{qaPreview.person==="cap"?"👩 "+nameCap:qaPreview.person==="gui"?"👨 "+nameGui:"🤝 Partagé"}</span></>
                 :<><span className="qa-tag" style={{background:"rgba(0,0,0,0.05)",color:"#374151"}}>{qaPreview.label}</span><span className="qa-tag" style={{background:"rgba(244,63,138,0.11)",color:"var(--p)"}}>{fmt(qaPreview.amount)}</span><span className="qa-tag" style={{background:"rgba(139,92,246,0.11)",color:"var(--s)"}}>{slabel[qaPreview.splitType]}</span></>
               }
             </div>
@@ -664,11 +676,21 @@ export default function App(){
                 <div><label className="hero-lbl">Date</label>
                 <input type="date" value={incForm.date} onChange={e=>setIncForm({...incForm,date:e.target.value})}/></div>
               </div>
-              <div><label className="hero-lbl">Pour qui ?</label>
-              <div style={{display:"flex",gap:10,marginTop:10}}>
-                <button className={"chip acc"+(incForm.person==="cap"?" on":"")} onClick={()=>setIncForm({...incForm,person:"cap"})}>{nameCap}</button>
-                <button className={"chip acc"+(incForm.person==="gui"?" on":"")} onClick={()=>setIncForm({...incForm,person:"gui"})}>{nameGui}</button>
-              </div></div>
+              <div><label className="hero-lbl">Répartition du revenu</label>
+              <div style={{display:"flex",flexWrap:"wrap",gap:8,marginTop:10}}>
+                <button className={"chip acc"+(incForm.splitType==="cap_only"?" on":"")} style={{flex:"none"}} onClick={()=>setIncForm({...incForm,splitType:"cap_only"})}>👩 {nameCap} seule</button>
+                <button className={"chip acc"+(incForm.splitType==="gui_only"?" on":"")} style={{flex:"none"}} onClick={()=>setIncForm({...incForm,splitType:"gui_only"})}>👨 {nameGui} seul</button>
+                <button className={"chip acc"+(incForm.splitType==="equal"?" on":"")} style={{flex:"none"}} onClick={()=>setIncForm({...incForm,splitType:"equal"})}>🤝 50/50</button>
+                <button className={"chip acc"+(incForm.splitType==="prorata"?" on":"")} style={{flex:"none"}} onClick={()=>setIncForm({...incForm,splitType:"prorata"})}>⚖️ Pro rata</button>
+                <button className={"chip acc"+(incForm.splitType==="custom"?" on":"")} style={{flex:"none"}} onClick={()=>setIncForm({...incForm,splitType:"custom"})}>✏️ Perso</button>
+              </div>
+              {incForm.splitType==="custom"&&<input type="number" placeholder={"Part de "+nameCap+" (€)"} value={incForm.capShare} onChange={e=>setIncForm({...incForm,capShare:e.target.value})} style={{marginTop:12}}/>}
+              {(incForm.splitType==="prorata"||incForm.splitType==="equal")&&incForm.amount&&(
+                <div style={{marginTop:10,fontSize:12,color:"#94a3b8",display:"flex",gap:12}}>
+                  {(()=>{const [cp,gp]=computeParts(parseFloat(incForm.amount)||0,incForm.splitType,"",ratio); return <><span style={{color:"var(--p)",fontWeight:700}}>👩 +{fmt(cp)}</span><span style={{color:"var(--s)",fontWeight:700}}>👨 +{fmt(gp)}</span></>})()}
+                </div>
+              )}
+              </div>
               <div><label className="hero-lbl">Type</label>
               <div style={{display:"flex",flexWrap:"wrap",gap:8,marginTop:10}}>
                 {INC_TYPES.map(t=><button key={t.key} className={"chip acc"+(incForm.type===t.key?" on":"")} style={{flex:"none"}} onClick={()=>setIncForm({...incForm,type:t.key})}>{t.emoji} {t.label}</button>)}
